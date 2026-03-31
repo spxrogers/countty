@@ -27,6 +27,7 @@ jobs:
           # Create a temporary directory with the PR build
           mkdir -p /tmp/pr-build
           cp index.html /tmp/pr-build/
+          [ -f 404.html ] && cp 404.html /tmp/pr-build/
 
           # Check out gh-pages branch (or create it)
           if git rev-parse --verify origin/gh-pages >/dev/null 2>&1; then

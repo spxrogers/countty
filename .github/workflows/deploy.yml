@@ -26,6 +26,7 @@ jobs:
           # Save site files
           mkdir -p /tmp/site-build
           cp index.html /tmp/site-build/
+          cp 404.html /tmp/site-build/
           cp CNAME /tmp/site-build/
 
           # Check out gh-pages branch
