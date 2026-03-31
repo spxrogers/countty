@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -16,15 +14,33 @@ concurrency:
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - id: deployment
-        uses: actions/deploy-pages@v4
+
+      - name: Deploy to gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Save site files
+          mkdir -p /tmp/site-build
+          cp index.html /tmp/site-build/
+          cp CNAME /tmp/site-build/
+
+          # Check out gh-pages branch
+          git fetch origin gh-pages || true
+          if git rev-parse --verify origin/gh-pages >/dev/null 2>&1; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+
+          # Replace root files but preserve pr/ directory
+          find . -maxdepth 1 ! -name '.' ! -name '.git' ! -name 'pr' -exec rm -rf {} +
+          cp /tmp/site-build/* .
+
+          git add -A
+          git diff --cached --quiet || git commit -m "Deploy from main ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+          git push origin gh-pages
