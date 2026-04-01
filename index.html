@@ -358,6 +358,27 @@ body {
 }
 .time-ampm:hover { background: rgba(255,255,255,0.1); }
 
+/* Native date/time inputs for mobile (invisible, used as picker triggers) */
+.native-picker-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+/* On touch devices, overlay the native input on the trigger so taps open the OS picker directly */
+@media (pointer: coarse) and (hover: none) {
+  .native-picker-input {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    z-index: 31;
+  }
+}
+
 .row { display: flex; gap: 12px; }
 .row .field { flex: 1; position: relative; }
 
@@ -653,6 +674,7 @@ body {
             <div class="cal-weekdays" id="cal-weekdays"></div>
             <div class="cal-days" id="cal-days"></div>
           </div>
+          <input type="date" class="native-picker-input" id="native-date">
         </div>
         <div class="field" style="position:relative;">
           <label>Time</label>
@@ -676,6 +698,7 @@ body {
               <button class="time-ampm" type="button" id="tp-ampm">AM</button>
             </div>
           </div>
+          <input type="time" class="native-picker-input" id="native-time">
         </div>
       </div>
 
@@ -830,6 +853,7 @@ body {
   let calYear, calMonth;
   let tpHour = 12, tpMin = 0, tpAmPm = 'AM';
 
+  const isMobile = window.matchMedia('(pointer: coarse) and (hover: none)').matches;
   const $ = (s) => document.querySelector(s);
   const creator = $('#creator');
   const countdownEl = $('#countdown');
@@ -889,13 +913,28 @@ body {
       renderCalendar();
     });
 
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeAllDropdowns();
-      dropdown.classList.toggle('open');
-      trigger.classList.toggle('open');
-      renderCalendar();
-    });
+    if (isMobile) {
+      const nativeDate = $('#native-date');
+      nativeDate.min = new Date().toISOString().split('T')[0];
+      nativeDate.value = selectedDate;
+
+      // The native input is CSS-overlaid on the trigger, so taps hit it directly.
+      // No need for showPicker()/click() — just handle the change event.
+      nativeDate.addEventListener('change', () => {
+        if (nativeDate.value) {
+          const [y, m, d] = nativeDate.value.split('-').map(Number);
+          selectDate(y, m - 1, d);
+        }
+      });
+    } else {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllDropdowns();
+        dropdown.classList.toggle('open');
+        trigger.classList.toggle('open');
+        renderCalendar();
+      });
+    }
   }
 
   function renderCalendar() {
@@ -970,12 +1009,28 @@ body {
     const trigger = $('#time-trigger');
     const dropdown = $('#time-dropdown');
 
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      closeAllDropdowns();
-      dropdown.classList.toggle('open');
-      trigger.classList.toggle('open');
-    });
+    if (isMobile) {
+      const nativeTime = $('#native-time');
+      nativeTime.value = selectedTime;
+
+      // The native input is CSS-overlaid on the trigger, so taps hit it directly.
+      nativeTime.addEventListener('change', () => {
+        if (nativeTime.value) {
+          const [h, m] = nativeTime.value.split(':').map(Number);
+          tpAmPm = h >= 12 ? 'PM' : 'AM';
+          tpHour = h % 12 || 12;
+          tpMin = m;
+          updateTimeDisplay();
+        }
+      });
+    } else {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAllDropdowns();
+        dropdown.classList.toggle('open');
+        trigger.classList.toggle('open');
+      });
+    }
 
     $('#hr-up').addEventListener('click', (e) => { e.stopPropagation(); tpHour = tpHour >= 12 ? 1 : tpHour + 1; updateTimeDisplay(); });
     $('#hr-down').addEventListener('click', (e) => { e.stopPropagation(); tpHour = tpHour <= 1 ? 12 : tpHour - 1; updateTimeDisplay(); });
