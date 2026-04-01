@@ -367,6 +367,17 @@ body {
   overflow: hidden;
   pointer-events: none;
 }
+/* On touch devices, overlay the native input on the trigger so taps open the OS picker directly */
+@media (pointer: coarse) and (hover: none) {
+  .native-picker-input {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    z-index: 31;
+  }
+}
 
 .row { display: flex; gap: 12px; }
 .row .field { flex: 1; position: relative; }
@@ -907,12 +918,8 @@ body {
       nativeDate.min = new Date().toISOString().split('T')[0];
       nativeDate.value = selectedDate;
 
-      trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        try { nativeDate.showPicker(); } catch { nativeDate.click(); }
-      });
-
+      // The native input is CSS-overlaid on the trigger, so taps hit it directly.
+      // No need for showPicker()/click() — just handle the change event.
       nativeDate.addEventListener('change', () => {
         if (nativeDate.value) {
           const [y, m, d] = nativeDate.value.split('-').map(Number);
@@ -1006,12 +1013,7 @@ body {
       const nativeTime = $('#native-time');
       nativeTime.value = selectedTime;
 
-      trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        try { nativeTime.showPicker(); } catch { nativeTime.click(); }
-      });
-
+      // The native input is CSS-overlaid on the trigger, so taps hit it directly.
       nativeTime.addEventListener('change', () => {
         if (nativeTime.value) {
           const [h, m] = nativeTime.value.split(':').map(Number);
